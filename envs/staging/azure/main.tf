@@ -5,7 +5,7 @@ terraform {
     organization = "ngphban"
 
     workspaces {
-      name = "acme-apps-azure-dev"
+      name = "acme-apps-azure-staging"
     }
   }
 
@@ -28,14 +28,14 @@ provider "azurerm" {
 
 module "order_portal" {
   source  = "app.terraform.io/ngphban/order-portal/azurerm"
-  version = "~> 1.2"
+  version = "1.2.0"
 
   name            = "acme-order-portal"
   environment     = var.environment
   cost_center     = var.cost_center
   owner           = var.owner
   azure_region    = var.azure_region
-  index_html_path  = "${path.module}/index.html"
+  index_html_path = "${path.module}/index.html"
   replication_type = "GRS"
-  access_tier      = "Cool"
+  access_tier      = "Hot"
 }
