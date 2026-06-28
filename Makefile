@@ -19,13 +19,13 @@ R := \033[0m
         cli-plan-dev cli-plan-staging \
         reset
 
-help: ## Danh sách demo scenarios
+help: ## List all demo scenarios
 	@printf "\n  $(C)ACME TFC Demo Runbook$(R)\n\n"
 	@grep -E '^[a-zA-Z_-]+:.*## .*$$' $(MAKEFILE_LIST) | \
 	  awk 'BEGIN {FS=":.*## "}; {printf "  $(C)make %-20s$(R) %s\n", $$1, $$2}'
 	@printf "\n"
 
-status: ## Git log + module tags của cả 2 repos
+status: ## Show git log + module tags for both repos
 	@printf "\n$(C)=== acme-apps-azure ===$(R)\n"
 	@cd $(APPS_DIR) && git log --oneline -4
 	@printf "\n$(C)=== terraform-azurerm-static-site ===$(R)\n"
@@ -35,8 +35,8 @@ status: ## Git log + module tags của cả 2 repos
 
 # ── Sentinel ─────────────────────────────────────────────────────────────────
 
-sentinel-fail: ## [Sentinel] Đổi access_tier=Hot → Sentinel FAIL, apply bị block
-	@printf "$(C)>>> Đổi access_tier=Hot để vi phạm Sentinel policy...$(R)\n"
+sentinel-fail: ## [Sentinel] Set access_tier=Hot → policy FAIL, apply blocked
+	@printf "$(C)>>> Setting access_tier=Hot to violate Sentinel policy...$(R)\n"
 	@python3 -c "\
 import re; f='$(DEV_TF)'; c=open(f).read(); \
 c=re.sub(r'access_tier\s*=\s*\"Cool\"','access_tier      = \"Hot\"',c); \
@@ -46,8 +46,8 @@ open(f,'w').write(c)"
 	 $(SSH) git push origin main
 	@printf "\n  → $(TFC_DEV)\n\n"
 
-sentinel-pass: ## [Sentinel] Revert access_tier=Cool → Sentinel PASS, apply tiếp tục
-	@printf "$(C)>>> Revert access_tier=Cool để fix Sentinel violation...$(R)\n"
+sentinel-pass: ## [Sentinel] Revert access_tier=Cool → policy PASS, apply resumes
+	@printf "$(C)>>> Reverting access_tier=Cool to fix Sentinel violation...$(R)\n"
 	@python3 -c "\
 import re; f='$(DEV_TF)'; c=open(f).read(); \
 c=re.sub(r'access_tier\s*=\s*\"Hot\"','access_tier      = \"Cool\"',c); \
@@ -59,18 +59,18 @@ open(f,'w').write(c)"
 
 # ── Module Registry ───────────────────────────────────────────────────────────
 
-module-publish: ## [Module] Platform team publish v1.3.0 — thêm min_tls_version
-	@printf "$(C)>>> Platform team: patch module + publish v1.3.0...$(R)\n"
+module-publish: ## [Module] Platform team publishes v1.3.0 — adds min_tls_version
+	@printf "$(C)>>> Platform team: patching module and publishing v1.3.0...$(R)\n"
 	@python3 $(APPS_DIR)/demo-scripts/patch_module_v1_3.py
 	@cd $(MODULE_DIR) && git add -A && \
 	 git commit -m 'feat: add min_tls_version variable (default TLS1_2) — non-breaking' && \
 	 git tag v1.3.0 && \
 	 $(SSH) git push origin main && \
 	 $(SSH) git push origin v1.3.0
-	@printf "\n  → v1.3.0 tagged. TFC Registry sẽ detect qua webhook.\n\n"
+	@printf "\n  → v1.3.0 tagged. TFC Registry will detect via webhook.\n\n"
 
-app-upgrade: ## [App] Application team upgrade lên module v1.3
-	@printf "$(C)>>> Application team: upgrade version constraint lên v1.3...$(R)\n"
+app-upgrade: ## [App] Application team upgrades to module v1.3
+	@printf "$(C)>>> Application team: upgrading version constraint to v1.3...$(R)\n"
 	@python3 -c "\
 import re; f='$(DEV_TF)'; c=open(f).read(); \
 c=re.sub(r'version = \"~> 1\.\d+\"','version = \"~> 1.3\"',c); \
@@ -82,20 +82,20 @@ open(f,'w').write(c)"
 
 # ── CLI Workflow ──────────────────────────────────────────────────────────────
 
-cli-plan-dev: ## [CLI] terraform plan từ local → chạy remote trên TFC Dev
-	@printf "$(C)>>> terraform plan (executes on TFC, output streams locally)...$(R)\n"
+cli-plan-dev: ## [CLI] Run terraform plan locally — executes remotely on TFC Dev
+	@printf "$(C)>>> Running terraform plan on dev (executes on TFC, streams locally)...$(R)\n"
 	@cd $(APPS_DIR)/envs/dev/azure && terraform plan
 
-cli-plan-staging: ## [CLI] terraform plan từ local → chạy remote trên TFC Staging
-	@printf "$(C)>>> terraform plan staging (executes on TFC, output streams locally)...$(R)\n"
+cli-plan-staging: ## [CLI] Run terraform plan locally — executes remotely on TFC Staging
+	@printf "$(C)>>> Running terraform plan on staging (executes on TFC, streams locally)...$(R)\n"
 	@cd $(APPS_DIR)/envs/staging/azure && \
 	 terraform init -upgrade -input=false 2>&1 | grep -E '(module|provider|initialized|Error)' && \
 	 terraform plan
 
 # ── Reset ─────────────────────────────────────────────────────────────────────
 
-reset: ## Reset dev về clean state (Cool tier, module v1.2)
-	@printf "$(C)>>> Reset dev về clean state...$(R)\n"
+reset: ## Reset dev to clean state (Cool tier, module v1.2)
+	@printf "$(C)>>> Resetting dev to clean state...$(R)\n"
 	@python3 -c "\
 import re; f='$(DEV_TF)'; c=open(f).read(); \
 c=re.sub(r'access_tier\s*=\s*\"Hot\"','access_tier      = \"Cool\"',c); \
