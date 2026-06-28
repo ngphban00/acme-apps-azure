@@ -72,7 +72,7 @@ Choose scenario: **Other issuer**
 ```
 Issuer:   https://app.terraform.io
 Audience: api://AzureADTokenExchange
-Subject:  organization:ngphban:project:Default:workspace:acme-apps-azure:run_phase:*
+Subject:  organization:ngphban:project:acme-demo:workspace:acme-apps-azure:run_phase:*
 ```
 
 Or via CLI — create two credentials, one per run phase (wildcard `*` does NOT work
@@ -83,7 +83,7 @@ az ad app federated-credential create \
   --parameters '{
     "name": "tfc-acme-apps-azure-plan",
     "issuer": "https://app.terraform.io",
-    "subject": "organization:ngphban:project:Default:workspace:acme-apps-azure:run_phase:plan",
+    "subject": "organization:ngphban:project:acme-demo:workspace:acme-apps-azure:run_phase:plan",
     "audiences": ["api://AzureADTokenExchange"]
   }'
 
@@ -92,7 +92,7 @@ az ad app federated-credential create \
   --parameters '{
     "name": "tfc-acme-apps-azure-apply",
     "issuer": "https://app.terraform.io",
-    "subject": "organization:ngphban:project:Default:workspace:acme-apps-azure:run_phase:apply",
+    "subject": "organization:ngphban:project:acme-demo:workspace:acme-apps-azure:run_phase:apply",
     "audiences": ["api://AzureADTokenExchange"]
   }'
 ```
