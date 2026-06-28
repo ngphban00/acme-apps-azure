@@ -10,6 +10,13 @@ SSH        := GIT_SSH_COMMAND='ssh -i $(HOME)/.ssh/github-ngphban00 -o StrictHos
 TFC_DEV  := https://app.terraform.io/app/ngphban/acme-apps-azure-dev/runs
 TFC_STG  := https://app.terraform.io/app/ngphban/acme-apps-azure-staging/runs
 
+# Auto-detect next semver tag from module repo
+LATEST_TAG   := $(shell cd $(MODULE_DIR) && git tag --sort=-v:refname | grep '^v' | head -1)
+NEXT_TAG     := $(shell cd $(MODULE_DIR) && git tag --sort=-v:refname | grep '^v' | head -1 | \
+                  awk -F'[v.]' '{printf "v%d.%d.%d", $$2, $$3, $$4+1}')
+NEXT_MINOR   := $(shell cd $(MODULE_DIR) && git tag --sort=-v:refname | grep '^v' | head -1 | \
+                  awk -F'[v.]' '{printf "~> %d.%d", $$2, $$3+1}')
+
 C := \033[36m
 R := \033[0m
 
@@ -23,7 +30,7 @@ help: ## List all demo scenarios
 	@printf "\n  $(C)ACME TFC Demo Runbook$(R)\n\n"
 	@grep -E '^[a-zA-Z_-]+:.*## .*$$' $(MAKEFILE_LIST) | \
 	  awk 'BEGIN {FS=":.*## "}; {printf "  $(C)make %-20s$(R) %s\n", $$1, $$2}'
-	@printf "\n"
+	@printf "\n  Current module: $(C)$(LATEST_TAG)$(R)  →  next publish: $(C)$(NEXT_TAG)$(R)\n\n"
 
 status: ## Show git log + module tags for both repos
 	@printf "\n$(C)=== acme-apps-azure ===$(R)\n"
@@ -59,24 +66,24 @@ open(f,'w').write(c)"
 
 # ── Module Registry ───────────────────────────────────────────────────────────
 
-module-publish: ## [Module] Platform team publishes v1.3.0 — adds min_tls_version
-	@printf "$(C)>>> Platform team: patching module and publishing v1.3.0...$(R)\n"
+module-publish: ## [Module] Platform team publishes next version — adds new feature
+	@printf "$(C)>>> Platform team: publishing module $(NEXT_TAG)...$(R)\n"
 	@python3 $(APPS_DIR)/demo-scripts/patch_module_v1_3.py
 	@cd $(MODULE_DIR) && git add -A && \
-	 git commit -m 'feat: add min_tls_version variable (default TLS1_2) — non-breaking' && \
-	 git tag v1.3.0 && \
+	 git commit -m 'feat: add new module feature — non-breaking' && \
+	 git tag $(NEXT_TAG) && \
 	 $(SSH) git push origin main && \
-	 $(SSH) git push origin v1.3.0
-	@printf "\n  → v1.3.0 tagged. TFC Registry will detect via webhook.\n\n"
+	 $(SSH) git push origin $(NEXT_TAG)
+	@printf "\n  → $(NEXT_TAG) published. TFC Registry will detect via webhook.\n\n"
 
-app-upgrade: ## [App] Application team upgrades to module v1.3
-	@printf "$(C)>>> Application team: upgrading version constraint to v1.3...$(R)\n"
+app-upgrade: ## [App] Application team upgrades to latest module version
+	@printf "$(C)>>> Application team: upgrading to module $(NEXT_MINOR)...$(R)\n"
 	@python3 -c "\
 import re; f='$(DEV_TF)'; c=open(f).read(); \
-c=re.sub(r'version = \"~> 1\.\d+\"','version = \"~> 1.3\"',c); \
+c=re.sub(r'version = \"~> \d+\.\d+\"','version = \"$(NEXT_MINOR)\"',c); \
 open(f,'w').write(c)"
 	@cd $(APPS_DIR) && git add -A && \
-	 git commit -m 'feat: upgrade to module v1.3' && \
+	 git commit -m 'feat: upgrade to module $(NEXT_MINOR)' && \
 	 $(SSH) git push origin main
 	@printf "\n  → $(TFC_DEV)\n\n"
 
@@ -94,16 +101,16 @@ cli-plan-staging: ## [CLI] Run terraform plan locally — executes remotely on T
 
 # ── Reset ─────────────────────────────────────────────────────────────────────
 
-reset: ## Reset dev to clean state (Cool tier, module v1.2)
-	@printf "$(C)>>> Resetting dev to clean state...$(R)\n"
+reset: ## Reset dev to clean state (Cool tier, module v1.0)
+	@printf "$(C)>>> Resetting dev to clean state (v1.0)...$(R)\n"
 	@python3 -c "\
 import re; f='$(DEV_TF)'; c=open(f).read(); \
 c=re.sub(r'access_tier\s*=\s*\"Hot\"','access_tier      = \"Cool\"',c); \
-c=re.sub(r'version = \"~> 1\.\d+\"','version = \"~> 1.2\"',c); \
+c=re.sub(r'version = \"~> \d+\.\d+\"','version = \"~> 1.0\"',c); \
 open(f,'w').write(c)"
 	@cd $(APPS_DIR) && \
 	 git diff --quiet HEAD || ( \
 	   git add -A && \
-	   git commit -m 'chore: reset to clean demo state (Cool, v1.2)' && \
+	   git commit -m 'chore: reset to clean demo state (Cool, v1.0)' && \
 	   $(SSH) git push origin main)
-	@printf "  ✓ Dev: access_tier=Cool, module version ~> 1.2\n\n"
+	@printf "  ✓ Dev: access_tier=Cool, module version ~> 1.0\n\n"
