@@ -12,12 +12,12 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.100"
+      version = "~> 1.0"
     }
 
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.6"
+      version = "~> 1.0"
     }
   }
 }
@@ -28,7 +28,7 @@ provider "azurerm" {
 
 module "order_portal" {
   source  = "app.terraform.io/ngphban/order-portal/azurerm"
-  version = "~> 1.2"
+  version = "~> 1.0"
 
   name            = "acme-order-portal"
   environment     = var.environment
