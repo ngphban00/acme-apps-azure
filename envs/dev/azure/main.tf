@@ -28,7 +28,7 @@ provider "azurerm" {
 
 module "order_portal" {
   source  = "app.terraform.io/ngphban/order-portal/azurerm"
-  version = "~> 1.1"
+  version = "~> 1.2"
 
   name            = "acme-order-portal"
   environment     = var.environment
@@ -37,4 +37,5 @@ module "order_portal" {
   azure_region    = var.azure_region
   index_html_path  = "${path.module}/index.html"
   replication_type = "GRS"
+  access_tier      = "Cool"
 }
