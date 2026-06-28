@@ -27,7 +27,7 @@ provider "azurerm" {
 }
 
 module "order_portal" {
-  source  = "app.terraform.io/ngphban/static-site/azurerm"
+  source  = "app.terraform.io/ngphban/order-portal/azurerm"
   version = "~> 1.1"
 
   name            = "acme-order-portal"
