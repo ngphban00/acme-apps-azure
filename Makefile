@@ -13,7 +13,7 @@ TFC_STG  := https://app.terraform.io/app/ngphban/acme-apps-azure-staging/runs
 # Auto-detect next semver tag from module repo
 LATEST_TAG   := $(shell cd $(MODULE_DIR) && git tag --sort=-v:refname | grep '^v' | head -1)
 NEXT_TAG     := $(shell cd $(MODULE_DIR) && git tag --sort=-v:refname | grep '^v' | head -1 | \
-                  awk -F'[v.]' '{printf "v%d.%d.%d", $$2, $$3, $$4+1}')
+                  awk -F'[v.]' '{printf "v%d.%d.0", $$2, $$3+1}')
 NEXT_MINOR   := $(shell cd $(MODULE_DIR) && git tag --sort=-v:refname | grep '^v' | head -1 | \
                   awk -F'[v.]' '{printf "~> %d.%d", $$2, $$3+1}')
 
