@@ -5,7 +5,7 @@ terraform {
     organization = "ngphban"
 
     workspaces {
-      name = "static-site-azure-dev"
+      name = "acme-apps-azure"
     }
   }
 
