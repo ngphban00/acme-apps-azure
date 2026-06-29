@@ -80,7 +80,7 @@ app-upgrade: ## [App] Application team upgrades to latest module version
 	@printf "$(C)>>> Application team: upgrading to module $(NEXT_MINOR)...$(R)\n"
 	@python3 -c "\
 import re; f='$(DEV_TF)'; c=open(f).read(); \
-c=re.sub(r'version = \"~> \d+\.\d+\"','version = \"$(NEXT_MINOR)\"',c); \
+c=re.sub(r'(source\s*=\s*\"app\.terraform\.io[^\n]*\n\s*)version = \"~> [\d.]+\"',r'\g<1>version = \"$(NEXT_MINOR)\"',c); \
 open(f,'w').write(c)"
 	@cd $(APPS_DIR) && git add -A && \
 	 git commit -m 'feat: upgrade to module $(NEXT_MINOR)' && \
@@ -106,7 +106,7 @@ reset: ## Reset dev to clean state (Cool tier, module v1.0)
 	@python3 -c "\
 import re; f='$(DEV_TF)'; c=open(f).read(); \
 c=re.sub(r'access_tier\s*=\s*\"Hot\"','access_tier      = \"Cool\"',c); \
-c=re.sub(r'version = \"~> \d+\.\d+\"','version = \"~> 1.0\"',c); \
+c=re.sub(r'(source\s*=\s*\"app\.terraform\.io[^\n]*\n\s*)version = \"~> [\d.]+\"',r'\g<1>version = \"~> 1.0\"',c); \
 open(f,'w').write(c)"
 	@cd $(APPS_DIR) && \
 	 git diff --quiet HEAD || ( \
