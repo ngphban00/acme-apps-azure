@@ -9,13 +9,9 @@ SSH        := GIT_SSH_COMMAND='ssh -i $(HOME)/.ssh/github-ngphban00 -o StrictHos
 
 TFC_DEV  := https://app.terraform.io/app/ngphban/acme-apps-azure-dev/runs
 TFC_STG  := https://app.terraform.io/app/ngphban/acme-apps-azure-staging/runs
+GH_CI    := https://github.com/ngphban00/terraform-azurerm-static-site/actions
 
-# Auto-detect next semver tag from module repo
-LATEST_TAG   := $(shell cd $(MODULE_DIR) && git tag --sort=-v:refname | grep '^v' | head -1)
-NEXT_TAG     := $(shell cd $(MODULE_DIR) && git tag --sort=-v:refname | grep '^v' | head -1 | \
-                  awk -F'[v.]' '{printf "v%d.%d.0", $$2, $$3+1}')
-NEXT_MINOR   := $(shell cd $(MODULE_DIR) && git tag --sort=-v:refname | grep '^v' | head -1 | \
-                  awk -F'[v.]' '{printf "~> %d.%d", $$2, $$3+1}')
+LATEST_TAG := $(shell cd $(MODULE_DIR) && git tag --sort=-v:refname | grep '^v' | head -1)
 
 C := \033[36m
 R := \033[0m
@@ -30,7 +26,7 @@ help: ## List all demo scenarios
 	@printf "\n  $(C)ACME TFC Demo Runbook$(R)\n\n"
 	@grep -E '^[a-zA-Z_-]+:.*## .*$$' $(MAKEFILE_LIST) | \
 	  awk 'BEGIN {FS=":.*## "}; {printf "  $(C)make %-20s$(R) %s\n", $$1, $$2}'
-	@printf "\n  Current module: $(C)$(LATEST_TAG)$(R)  →  next publish: $(C)$(NEXT_TAG)$(R)\n\n"
+	@printf "\n  Module registry: $(C)$(LATEST_TAG)$(R) (latest)\n\n"
 
 status: ## Show git log + module tags for both repos
 	@printf "\n$(C)=== acme-apps-azure ===$(R)\n"
@@ -66,24 +62,29 @@ open(f,'w').write(c)"
 
 # ── Module Registry ───────────────────────────────────────────────────────────
 
-module-publish: ## [Module] Platform team publishes next version — adds new feature
-	@printf "$(C)>>> Platform team: publishing module $(NEXT_TAG)...$(R)\n"
+module-publish: ## [Module] Platform team pushes feature — CI runs tests then auto-tags
+	@printf "$(C)>>> Platform team: pushing new feature to module repo...$(R)\n"
 	@python3 $(APPS_DIR)/demo-scripts/patch_module_v1_3.py
 	@cd $(MODULE_DIR) && git add -A && \
-	 git commit -m 'feat: add new module feature — non-breaking' && \
-	 git tag $(NEXT_TAG) && \
-	 $(SSH) git push origin main && \
-	 $(SSH) git push origin $(NEXT_TAG)
-	@printf "\n  → $(NEXT_TAG) published. TFC Registry will detect via webhook.\n\n"
+	 git commit -m 'feat: add min_tls_version variable (default TLS1_2) — non-breaking' && \
+	 $(SSH) git push origin main
+	@printf "\n  → CI is now running quality gate + unit tests\n"
+	@printf "  → $(GH_CI)\n"
+	@printf "  → If tests pass, CI will auto-tag and publish to TFC Registry\n\n"
 
-app-upgrade: ## [App] Application team upgrades to latest module version
-	@printf "$(C)>>> Application team: upgrading to module $(NEXT_MINOR)...$(R)\n"
-	@python3 -c "\
-import re; f='$(DEV_TF)'; c=open(f).read(); \
-c=re.sub(r'(source\s*=\s*\"app\.terraform\.io[^\n]*\n\s*)version = \"~> [\d.]+\"',r'\g<1>version = \"$(NEXT_MINOR)\"',c); \
-open(f,'w').write(c)"
-	@cd $(APPS_DIR) && git add -A && \
-	 git commit -m 'feat: upgrade to module $(NEXT_MINOR)' && \
+app-upgrade: ## [App] Application team upgrades to latest published module version
+	@printf "$(C)>>> Fetching latest tags from module registry...$(R)\n"
+	@cd $(MODULE_DIR) && $(SSH) git fetch --tags -q
+	@LATEST=$$(cd $(MODULE_DIR) && git tag --sort=-v:refname | grep '^v' | head -1) && \
+	 MINOR=$$(echo $$LATEST | awk -F'[v.]' '{printf "~> %d.%d", $$2, $$3}') && \
+	 printf "$(C)>>> Upgrading app to module $$MINOR ($$LATEST)...$(R)\n" && \
+	 python3 -c " \
+import re, sys; f='$(DEV_TF)'; minor=sys.argv[1]; c=open(f).read(); \
+c=re.sub(r'(source\s*=\s*\"app\.terraform\.io[^\n]*\n\s*)version = \"~> [\d.]+\"', \
+         lambda m: m.group(1) + 'version = \"' + minor + '\"', c); \
+open(f,'w').write(c)" "$$MINOR" && \
+	 cd $(APPS_DIR) && git add -A && \
+	 git commit -m "feat: upgrade to module $$MINOR" && \
 	 $(SSH) git push origin main
 	@printf "\n  → $(TFC_DEV)\n\n"
 
@@ -113,4 +114,7 @@ open(f,'w').write(c)"
 	   git add -A && \
 	   git commit -m 'chore: reset to demo starting state (app v1.0, Cool tier)' && \
 	   $(SSH) git push origin main)
-	@printf "  ✓ App: consuming module ~> 1.0  (TFC Registry: v1.0.0–$(LATEST_TAG) available)\n\n"
+	@cd $(MODULE_DIR) && $(SSH) git fetch --tags -q
+	@printf "  ✓ App: consuming module ~> 1.0\n"
+	@printf "  ✓ Registry: " && cd $(MODULE_DIR) && git tag --sort=-v:refname | grep '^v' | tr '\n' ' '
+	@printf "\n\n"
