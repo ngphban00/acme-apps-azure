@@ -35,7 +35,5 @@ module "order_portal" {
   cost_center     = var.cost_center
   owner           = var.owner
   azure_region    = var.azure_region
-  replication_type = "GRS"
-  access_tier      = "Hot"
   index_html_path = "${path.module}/index.html"
 }

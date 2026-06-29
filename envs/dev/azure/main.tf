@@ -28,7 +28,7 @@ provider "azurerm" {
 
 module "order_portal" {
   source  = "app.terraform.io/ngphban/order-portal/azurerm"
-  version = "~> 1.1"
+  version = "~> 1.0"
 
   name            = "acme-order-portal"
   environment     = var.environment
