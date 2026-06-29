@@ -101,8 +101,8 @@ cli-plan-staging: ## [CLI] Run terraform plan locally — executes remotely on T
 
 # ── Reset ─────────────────────────────────────────────────────────────────────
 
-reset: ## Reset dev to clean state (Cool tier, module v1.0)
-	@printf "$(C)>>> Resetting dev to clean state (v1.0)...$(R)\n"
+reset: ## Reset demo to starting state: app on v1.0, module registry untouched
+	@printf "$(C)>>> Resetting to demo starting state...$(R)\n"
 	@python3 -c "\
 import re; f='$(DEV_TF)'; c=open(f).read(); \
 c=re.sub(r'access_tier\s*=\s*\"Hot\"','access_tier      = \"Cool\"',c); \
@@ -111,6 +111,6 @@ open(f,'w').write(c)"
 	@cd $(APPS_DIR) && \
 	 git diff --quiet HEAD || ( \
 	   git add -A && \
-	   git commit -m 'chore: reset to clean demo state (Cool, v1.0)' && \
+	   git commit -m 'chore: reset to demo starting state (app v1.0, Cool tier)' && \
 	   $(SSH) git push origin main)
-	@printf "  ✓ Dev: access_tier=Cool, module version ~> 1.0\n\n"
+	@printf "  ✓ App: consuming module ~> 1.0  (TFC Registry: v1.0.0–$(LATEST_TAG) available)\n\n"
