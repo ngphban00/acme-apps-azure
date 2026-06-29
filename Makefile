@@ -102,19 +102,44 @@ cli-plan-staging: ## [CLI] Run terraform plan locally — executes remotely on T
 
 # ── Reset ─────────────────────────────────────────────────────────────────────
 
-reset: ## Reset demo to starting state: app on v1.0, module registry untouched
+reset: ## Reset demo: app on v1.0, registry on v1.0.0 only, module at baseline
 	@printf "$(C)>>> Resetting to demo starting state...$(R)\n"
+	@printf "  [1/4] Resetting module code to v1.0.0 baseline...\n"
+	@python3 $(APPS_DIR)/demo-scripts/reset_module.py
+	@cd $(MODULE_DIR) && \
+	 if ! git diff --quiet HEAD; then \
+	   git add -A && \
+	   git commit -m 'chore: reset module to v1.0.0 baseline' && \
+	   $(SSH) git push origin main; \
+	 else \
+	   printf "  - module code: already at baseline\n"; \
+	 fi
+	@printf "  [2/4] Removing extra tags from registry...\n"
+	@cd $(MODULE_DIR) && \
+	 $(SSH) git fetch --tags -q && \
+	 EXTRA=$$(git tag | grep '^v' | grep -v '^v1\.0\.0$$') && \
+	 if [ -n "$$EXTRA" ]; then \
+	   $(SSH) git push origin --delete $$EXTRA 2>/dev/null && \
+	   git tag -d $$EXTRA 2>/dev/null && \
+	   printf "  ✓ Deleted tags: $$EXTRA\n"; \
+	 else \
+	   printf "  - No extra tags to delete\n"; \
+	 fi
+	@printf "  [3/4] Resetting app version and access_tier...\n"
 	@python3 -c "\
 import re; f='$(DEV_TF)'; c=open(f).read(); \
 c=re.sub(r'access_tier\s*=\s*\"Hot\"','access_tier      = \"Cool\"',c); \
 c=re.sub(r'(source\s*=\s*\"app\.terraform\.io[^\n]*\n\s*)version = \"~> [\d.]+\"',r'\g<1>version = \"~> 1.0\"',c); \
 open(f,'w').write(c)"
 	@cd $(APPS_DIR) && \
-	 git diff --quiet HEAD || ( \
+	 if ! git diff --quiet HEAD; then \
 	   git add -A && \
 	   git commit -m 'chore: reset to demo starting state (app v1.0, Cool tier)' && \
-	   $(SSH) git push origin main)
-	@cd $(MODULE_DIR) && $(SSH) git fetch --tags -q
+	   $(SSH) git push origin main; \
+	 else \
+	   printf "  - app: already at starting state\n"; \
+	 fi
+	@printf "  [4/4] Verifying...\n"
 	@printf "  ✓ App: consuming module ~> 1.0\n"
 	@printf "  ✓ Registry: " && cd $(MODULE_DIR) && git tag --sort=-v:refname | grep '^v' | tr '\n' ' '
 	@printf "\n\n"
