@@ -37,5 +37,5 @@ module "order_portal" {
   azure_region    = var.azure_region
   index_html_path  = "${path.module}/index.html"
   replication_type = "GRS"
-  access_tier      = "Cool"
+  access_tier      = "Hot"
 }
